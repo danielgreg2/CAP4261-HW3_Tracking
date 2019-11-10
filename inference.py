@@ -155,7 +155,7 @@ class ExactInference(InferenceModule):
         So in essence we want to multiply the current beleifs by our emission model, and also check for the special jail case.
         '''
         '''
-        Debugging note:
+        Debugging notes:
         - When I reach the ghost in the 4th test, the jail position is (1,1), but this position it not in the beliefs
             I think I might have to rewrite the beliefs counter so tht the jail position is included in it, and our belief about this position is 1.0
         '''
@@ -261,8 +261,43 @@ class ExactInference(InferenceModule):
         are used and how they combine to give us a belief distribution over new
         positions after a time update from a particular position.
         """
+        #Overiew of what I am trying to do/how I understand the problem
+        #Material to reference: class notes, as well as 'Inference: Probability of an observed sequence' section (4.1) of this wikipedia page https://en.wikipedia.org/wiki/Hidden_Markov_model
+            #Note that in the wiki article, Y can be thought of as our Xt, and X as our Xt-1
+        '''
+        Beliefs are our query (i.e. X), while observations are our evidence (i.e. 'e').
+        Our belief (X) is where we believe the ghost to be (with respect to a position, it could be a set of positions as well as the probabilites associated with each position).
+        We want to use the Hidden Markov Model because we don't have any observations, but we have the transition model.
+        From my class notes I have that for the HMM: P(Xt) = SUM[P(Xt|Xt-1) * P(Xt-1)]
+        We know that the 'transition model' is P(Xt|Xt-1), which is newPosDist.
+        We know that the P(Xt-1) is the prior, which is the current beliefs (before update).
+        
+        So in essence we want to multiply the current beleifs by our transition model, and also check for the special jail case.
+        '''
+        '''
+        Debugging notes:
+        - 
+        '''
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        allPossible = util.Counter()
+        for p in self.legalPositions:
+            #print "Legal position: ", p
+            #print "Current belief about position: ", allPossible[p]
+            newPosDist = self.getPositionDistribution(self.setGhostPosition(gameState, p))
+            #newPosDistr is a distribution of where we think the ghost might be, along with the probability we think that it is there
+            #print "Transition Model: ", newPosDist
+            
+            #Here I sum up the probabilities from the transition model * current belief (i.e. SUM[P(Xt|Xt-1) * P(Xt-1)] in the HMM equation)
+            #Xt = newGuess, Xt-1 = p, P(Xt|Xt-1) = newProb, P(Xt-1) = self.beliefs[p]
+            for newGuess, newProb in newPosDist.items():
+                #print "Position in transition model: ", newGuess
+                #print "Probabilty of transition model for specific position: ", newProb
+                allPossible[newGuess] = allPossible[newGuess] + newProb*self.beliefs[p]
+
+
+        #Normalizing values so probabilites sum to 1, as well as setting beliefs equal to their updated values
+        allPossible.normalize()
+        self.beliefs = allPossible
 
     def getBeliefDistribution(self):
         return self.beliefs
