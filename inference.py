@@ -144,26 +144,69 @@ class ExactInference(InferenceModule):
              of None will be returned if, and only if, the ghost is
              captured).
         """
+        #Overiew of what I am trying to do/how I understand the problem
+        #Material to reference: class notes, as well as 'Bayesian Inference' section (2.2) of this wikipedia page https://en.wikipedia.org/wiki/Bayesian_inference
+        '''
+        Beliefs are our query (i.e. X), while observations are our evidence (i.e. 'e').
+        We are trying to update the beliefs, so we want to update the posterior distribution (i.e. P(X|e).
+        From Bayes rule we know that P(X|e) = P(e|X)*P(X)/P(e) = alpha*P(e|X)*P(X).
+        We also know that the 'emission model' (also known as sensor model) is P(e|X).
+        
+        So in essence we want to multiply the current beleifs by our emission model, and also check for the special jail case.
+        '''
+        '''
+        Debugging note:
+        - When I reach the ghost in the 4th test, the jail position is (1,1), but this position it not in the beliefs
+            I think I might have to rewrite the beliefs counter so tht the jail position is included in it, and our belief about this position is 1.0
+        '''
+        
         noisyDistance = observation
         emissionModel = busters.getObservationDistribution(noisyDistance)
         pacmanPosition = gameState.getPacmanPosition()
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-        # Replace this code with a correct observation update
-        # Be sure to handle the "jail" edge case where the ghost is eaten
-        # and noisyDistance is None
+        
+        ### Print statements to get a handle of the problem
+        
+        #Noisy distance is a single number, that is the estimated distance to a single ghost
+        #print "###############\n"
+        #print "Noisy distance: ", noisyDistance
+        '''
+        Definition of emission model from 'busters.py':
+        Returns the factor P( noisyDistance | TrueDistances ), the likelihood of the provided noisyDistance
+        conditioned upon all the possible true distances that could have generated it.
+    
+        Returned in the form of a util.Counter()
+        '''
+        #print "\nEmission model: ", emissionModel
+        #Pacman's position is an (x, y) pair of coordinates
+        #print "\nPacman's position: ", pacmanPosition
+        
+        ### END of print statements to get handle of the problem
+        
         allPossible = util.Counter()
         for p in self.legalPositions:
+            
+            #Here is where I will check for the jail edge case, in which noisyDistance == None
+            #I want to add a new element for the jail position and set its belief to 1.0
+            if noisyDistance == None:
+                #print self.getJailPosition()
+                allPossible[self.getJailPosition()] = 1.0
+                #print "All possible: ", allPossible
+            #print "legal position: ", p
+            
+            #trueDistance is the actual distance from pacman to the position where the ghost could possibly be
             trueDistance = util.manhattanDistance(p, pacmanPosition)
+            #Here is where I will set what the posterior distribution values will be
             if emissionModel[trueDistance] > 0:
-                allPossible[p] = 1.0
+                allPossible[p] = self.beliefs[p]*emissionModel[trueDistance]
 
         "*** END YOUR CODE HERE ***"
 
+        #Normalizing values so probabilites sum to 1, as well as setting beliefs equal to their updated values
         allPossible.normalize()
         self.beliefs = allPossible
+        #print "\nBeliefs: ", self.beliefs
 
     def elapseTime(self, gameState):
         """
