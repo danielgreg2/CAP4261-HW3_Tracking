@@ -157,10 +157,48 @@ class GreedyBustersAgent(BustersAgent):
              gameState.getLivingGhosts() list.
         """
         pacmanPosition = gameState.getPacmanPosition()
-        legal = [a for a in gameState.getLegalPacmanActions()]
+        #print "\nPacman Position: ", pacmanPosition
+        legal = [a for a in gameState.getLegalPacmanActions()]  #Legal is the different actions that Pacman can take
+        #print "\nLegal: ", legal
         livingGhosts = gameState.getLivingGhosts()
+        #print "\nLiving Ghosts: ", livingGhosts
         livingGhostPositionDistributions = \
             [beliefs for i, beliefs in enumerate(self.ghostBeliefs)
              if livingGhosts[i+1]]
+        
+        
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        ###These 3 lines are just testing to get a handle of what info I can use
+        #print "\nLiving Ghost Position Distributions: ", livingGhostPositionDistributions
+        #highestProbGhostPos = livingGhostPositionDistributions[0].argMax()
+        #print "\nPosition with highest probabilty of ghost 1 being there: ", highestProbGhostPos
+        
+        
+        
+        #First find the expected position of all ghosts (i.e. picking the highest probabilty position for each ghosts)
+            #And also determine the distance to that ghost
+        possibleGhostPos = util.Counter()   #Will hold all possible ghost positions, as well as distances to that ghost
+        for ghostPosAndProb in livingGhostPositionDistributions:
+            highestProbGhostPos = ghostPosAndProb.argMax()
+            possibleGhostPos[highestProbGhostPos] = self.distancer.getDistance(pacmanPosition, highestProbGhostPos)
+            #print "\nUpdated ghost position counter: ", possibleGhostPos
+        
+        
+        #Find the closest (minimum distance) ghost from the list of possible ghost positions
+        closestGhost = possibleGhostPos.sortedKeys()[-1]
+        #print "\nClosest ghost", closestGhost
+        
+        
+        #Return the pacman action (out of all possible actions) that minimizes distance to the closest ghost
+        bestAction = legal[0]   #Initially assume first action is the best action
+        bestActionDistToGhost = self.distancer.getDistance(Actions.getSuccessor(pacmanPosition, bestAction), closestGhost)
+        #print "Initial best action distance to ghost: ", bestActionDistToGhost
+        for pacAction in legal:
+            #print "Pacman next action: ", pacAction
+            successorPosition = Actions.getSuccessor(pacmanPosition, pacAction)
+            successorDistance = self.distancer.getDistance(successorPosition, closestGhost)
+            #print "New action distance to ghost: ", successorDistance
+            if successorDistance < bestActionDistToGhost:
+                bestAction = pacAction
+        #print "Best Action: ", bestAction
+        return bestAction
